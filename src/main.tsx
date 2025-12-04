@@ -5,6 +5,9 @@ import { App } from './App.tsx'
 import { Provider as ReduxProvider } from 'react-redux'
 import { persistedStore, store } from './store/index.ts'
 import { PersistGate } from 'redux-persist/integration/react'
+import { setupAxiosInterceptors } from './services/api.ts'
+
+setupAxiosInterceptors(store)
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

@@ -1,64 +1,58 @@
 import React, { useState } from 'react'
-import { useNavigate, Navigate, Link as RouterLink } from 'react-router-dom'
+import { useNavigate, Link as RouterLink } from 'react-router-dom'
 import {
   Container,
   Box,
   Typography,
   TextField,
   Button,
-  Grid,
   CircularProgress,
   Link,
+  Grid,
 } from '@mui/material'
 import { Twitter } from '@mui/icons-material'
 
 import api from '../services/api.ts'
-import { login } from '../store/slices/authSlice.ts'
-import { useAppDispatch, useAppSelector } from '../store/hooks.ts'
 
-export function LoginPage() {
+export function RegisterPage() {
   const navigate = useNavigate()
-  const dispatch = useAppDispatch()
-  const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn)
 
+  const [name, setName] = useState('')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [imageUrl, setImageUrl] = useState('')
+
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  if (isLoggedIn) {
-    return <Navigate to="/" replace />
-  }
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
     setError(null)
 
-    if (!username || !password) {
-      setError('Por favor, preencha o campo de usuário e senha.')
+    if (!name || !username || !password) {
+      setError('Por favor, preencha todos os campos obrigatórios.')
       return
     }
 
     setIsLoading(true)
 
     try {
-      const loginData = {
+      const userData = {
+        name,
         username,
         password,
+        imageUrl: imageUrl.trim() || undefined,
       }
 
-      const response = await api.post('/auth/login', loginData)
+      await api.post('/users', userData)
 
-      const { token, user } = response.data
-      const userUsername = user.username
-
-      dispatch(login({ token, username: userUsername }))
-
-      navigate('/')
+      alert('Cadastro realizado com sucesso! Você já pode fazer login.')
+      navigate('/login')
     } catch (err: any) {
       const errorMessage =
         err.response?.data?.message ||
-        'Falha na autenticação. Verifique suas credenciais.'
+        'Falha no cadastro. Por favor, verifique se o Nome de Usuário já está em uso.'
+
       setError(errorMessage)
     } finally {
       setIsLoading(false)
@@ -69,33 +63,46 @@ export function LoginPage() {
     <Container component="main" maxWidth="xs">
       <Box
         sx={{
-          marginTop: 8,
+          marginTop: 6,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           padding: 4,
           borderRadius: 2,
           boxShadow: 3,
+          bgcolor: 'background.paper',
         }}
       >
         <Twitter sx={{ fontSize: 50, color: 'primary.main', mb: 1 }} />
         <Typography component="h1" variant="h5" sx={{ mb: 3 }}>
-          Entrar no Growtwitter
+          Crie sua conta Growtwitter
         </Typography>
         <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
           <TextField
             margin="normal"
             required
             fullWidth
-            id="username"
-            label="Nome de Usuário"
+            label="Nome Completo"
+            name="name"
+            autoComplete="name"
+            autoFocus
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            disabled={isLoading}
+          />
+
+          <TextField
+            margin="normal"
+            required
+            fullWidth
+            label="Nome de Usuário (único)"
             name="username"
             autoComplete="username"
-            autoFocus
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             disabled={isLoading}
           />
+
           <TextField
             margin="normal"
             required
@@ -103,12 +110,22 @@ export function LoginPage() {
             name="password"
             label="Senha"
             type="password"
-            id="password"
-            autoComplete="current-password"
+            autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             disabled={isLoading}
           />
+
+          <TextField
+            margin="normal"
+            fullWidth
+            label="URL da Imagem de Perfil (Opcional)"
+            name="imageUrl"
+            value={imageUrl}
+            onChange={(e) => setImageUrl(e.target.value)}
+            disabled={isLoading}
+          />
+
           {error && (
             <Typography
               color="error"
@@ -119,23 +136,25 @@ export function LoginPage() {
               {error}
             </Typography>
           )}
+
           <Button
             type="submit"
             fullWidth
             variant="contained"
             sx={{ mt: 3, mb: 2, py: 1.5 }}
-            disabled={isLoading || !username || !password}
+            disabled={isLoading || !name || !username || !password}
           >
             {isLoading ? (
               <CircularProgress size={24} color="inherit" />
             ) : (
-              'Entrar'
+              'Cadastrar'
             )}
           </Button>
+
           <Grid container justifyContent="center">
-            <Grid>
-              <Link component={RouterLink} to="/register" variant="body2">
-                {'Não tem uma conta? Cadastre-se'}
+            <Grid size="auto">
+              <Link component={RouterLink} to="/login" variant="body2">
+                {'Já tem uma conta? Entrar'}
               </Link>
             </Grid>
           </Grid>
