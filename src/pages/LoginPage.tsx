@@ -134,7 +134,7 @@ export function LoginPage() {
           </Button>
           <Grid container justifyContent="center">
             <Grid>
-              <Link component={RouterLink} to="/register" variant="body2">
+              <Link component={RouterLink} to="/registerPage" variant="body2">
                 {'Não tem uma conta? Cadastre-se'}
               </Link>
             </Grid>
