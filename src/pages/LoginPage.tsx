@@ -13,7 +13,7 @@ import {
 import { Twitter } from '@mui/icons-material'
 
 import api from '../services/api.ts'
-import { login } from '../store/slices/authSlice.ts'
+import { login } from '../store/slices/authSlice.ts' // Importação da action 'login'
 import { useAppDispatch, useAppSelector } from '../store/hooks.ts'
 
 export function LoginPage() {
@@ -49,10 +49,29 @@ export function LoginPage() {
 
       const response = await api.post('/auth/login', loginData)
 
+      // 1. Desestruturação dos dados da API
       const { token, user } = response.data
-      const userUsername = user.username
 
-      dispatch(login({ token, username: userUsername }))
+      // 🚨 AJUSTE AQUI: Extraindo todos os campos necessários do objeto 'user'
+      const {
+        id, // ID é crucial para interações futuras da API
+        username: userUsername,
+        name,
+        imageUrl,
+      } = user
+
+      // 2. Dispatch da action 'login' com todos os dados
+      // Se 'userUsername' ou 'name' não vierem da API, seu código Typescript dará um erro
+      // no build, garantindo a tipagem correta.
+      dispatch(
+        login({
+          token,
+          id, // Incluído
+          username: userUsername,
+          name, // Incluído
+          imageUrl, // Incluído
+        }),
+      )
 
       navigate('/')
     } catch (err: any) {
@@ -134,7 +153,7 @@ export function LoginPage() {
           </Button>
           <Grid container justifyContent="center">
             <Grid>
-              <Link component={RouterLink} to="/registerPage" variant="body2">
+              <Link component={RouterLink} to="/register" variant="body2">
                 {'Não tem uma conta? Cadastre-se'}
               </Link>
             </Grid>

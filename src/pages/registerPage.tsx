@@ -9,6 +9,8 @@ import {
   CircularProgress,
   Link,
   Grid,
+  Snackbar, // 🚨 Novo import
+  Alert, // 🚨 Novo import
 } from '@mui/material'
 import { Twitter } from '@mui/icons-material'
 
@@ -24,6 +26,17 @@ export function RegisterPage() {
 
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [openSuccess, setOpenSuccess] = useState(false)
+
+  const handleClose = (
+    event?: React.SyntheticEvent | Event,
+    reason?: string,
+  ) => {
+    if (reason === 'clickaway') {
+      return
+    }
+    setOpenSuccess(false)
+  }
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
@@ -44,10 +57,13 @@ export function RegisterPage() {
         imageUrl: imageUrl.trim() || undefined,
       }
 
-      await api.post('/users', userData)
+      await api.post('/auth/register', userData)
 
-      alert('Cadastro realizado com sucesso! Você já pode fazer login.')
-      navigate('/login')
+      setOpenSuccess(true)
+
+      setTimeout(() => {
+        navigate('/login')
+      }, 2000)
     } catch (err: any) {
       const errorMessage =
         err.response?.data?.message ||
@@ -95,7 +111,7 @@ export function RegisterPage() {
             margin="normal"
             required
             fullWidth
-            label="Nome de Usuário (único)"
+            label="Username"
             name="username"
             autoComplete="username"
             value={username}
@@ -160,6 +176,21 @@ export function RegisterPage() {
           </Grid>
         </Box>
       </Box>
+
+      <Snackbar
+        open={openSuccess}
+        autoHideDuration={3000}
+        onClose={handleClose}
+      >
+        <Alert
+          onClose={handleClose}
+          severity="success"
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          Cadastro realizado com sucesso! Você será redirecionado em instantes.
+        </Alert>
+      </Snackbar>
     </Container>
   )
 }

@@ -1,26 +1,31 @@
-// src/components/TweetCard.tsx
-
 import React, { useState } from 'react'
 import type { Tweet } from '../types'
 import api from '../services/api'
+import { useAppSelector } from '../store/hooks'
 import { useAuth } from '../store/hooks'
+import { useNavigate } from 'react-router-dom'
 
-// Importações do MUI
 import { Box, Typography, Avatar, IconButton } from '@mui/material'
-// Importações de Ícones do MUI
 import FavoriteIcon from '@mui/icons-material/Favorite'
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder'
 import CommentOutlinedIcon from '@mui/icons-material/CommentOutlined'
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 
 interface TweetCardProps {
   tweet: Tweet
+  onDeleteSuccess?: (tweetId: string) => void
 }
 
 export const TweetCard: React.FC<TweetCardProps> = ({
   tweet: initialTweet,
+  onDeleteSuccess,
 }) => {
   const [tweet, setTweet] = useState(initialTweet)
   const { isLoggedIn } = useAuth()
+  const navigate = useNavigate()
+
+  const loggedUserId = useAppSelector((state) => state.auth.id)
+  const isMyTweet = loggedUserId === tweet.user.id
 
   const handleLikeToggle = async () => {
     if (!isLoggedIn) {
@@ -28,7 +33,6 @@ export const TweetCard: React.FC<TweetCardProps> = ({
       return
     }
 
-    // 1. Atualização Otimista
     const isLiking = !tweet.isLikedByMe
     const newLikesCount = tweet.likesCount + (isLiking ? 1 : -1)
 
@@ -47,10 +51,35 @@ export const TweetCard: React.FC<TweetCardProps> = ({
       }
     } catch (error) {
       console.error('Erro ao curtir/descurtir o tweet:', error)
-      // 2. Reversão de Estado em caso de falha
       setTweet(initialTweet)
       alert('Não foi possível realizar a ação. Tente novamente.')
     }
+  }
+
+  const handleDeleteTweet = async () => {
+    if (!isMyTweet) {
+      alert('Você só pode deletar seus próprios tweets.')
+      return
+    }
+
+    if (!window.confirm('Tem certeza que deseja deletar este tweet?')) {
+      return
+    }
+
+    try {
+      await api.delete(`/tweets/${tweet.id}`)
+
+      if (onDeleteSuccess) {
+        onDeleteSuccess(tweet.id)
+      }
+    } catch (error) {
+      console.error('Erro ao deletar o tweet:', error)
+      alert('Não foi possível deletar o tweet. Tente novamente.')
+    }
+  }
+
+  const handleProfileClick = () => {
+    navigate(`/profile/${tweet.user.username}`)
   }
 
   const formattedDate = new Date(tweet.createdAt).toLocaleDateString('pt-BR', {
@@ -64,9 +93,9 @@ export const TweetCard: React.FC<TweetCardProps> = ({
     <Box
       sx={{
         border: '1px solid #e0e0e0',
-        padding: 2, // p: 2 (16px)
-        marginBottom: 1, // mb: 1 (8px)
-        borderRadius: 2, // borderRadius: 8px
+        padding: 2,
+        marginBottom: 1,
+        borderRadius: 2,
         backgroundColor: '#fff',
         transition: 'background-color 0.2s',
         '&:hover': {
@@ -74,7 +103,15 @@ export const TweetCard: React.FC<TweetCardProps> = ({
         },
       }}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          mb: 1.5,
+          cursor: 'pointer',
+        }}
+        onClick={handleProfileClick}
+      >
         <Avatar
           src={tweet.user.imageUrl || '/default_avatar.png'}
           alt={`${tweet.user.name}'s avatar`}
@@ -84,7 +121,11 @@ export const TweetCard: React.FC<TweetCardProps> = ({
           <Typography
             variant="subtitle1"
             component="span"
-            sx={{ fontWeight: 'bold', mr: 0.5 }}
+            sx={{
+              fontWeight: 'bold',
+              mr: 0.5,
+              '&:hover': { textDecoration: 'underline' },
+            }}
           >
             {tweet.user.name}
           </Typography>
@@ -106,49 +147,67 @@ export const TweetCard: React.FC<TweetCardProps> = ({
         {tweet.content}
       </Typography>
 
-      <Box sx={{ display: 'flex', gap: 2 }}>
-        {/* Ícone de Comentário */}
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            color: 'text.secondary',
-          }}
-        >
-          <IconButton size="small" aria-label="comments" sx={{ p: 0.5 }}>
-            <CommentOutlinedIcon fontSize="small" />
-          </IconButton>
-          <Typography variant="caption" sx={{ ml: 0.5 }}>
-            {tweet.repliesCount}
-          </Typography>
+      <Box sx={{ display: 'flex', gap: 2, justifyContent: 'space-between' }}>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              color: 'text.secondary',
+            }}
+          >
+            <IconButton size="small" aria-label="comments" sx={{ p: 0.5 }}>
+              <CommentOutlinedIcon fontSize="small" />
+            </IconButton>
+            <Typography variant="caption" sx={{ ml: 0.5 }}>
+              {tweet.repliesCount}
+            </Typography>
+          </Box>
+
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <IconButton
+              size="small"
+              aria-label="like"
+              onClick={handleLikeToggle}
+              sx={{
+                p: 0.5,
+                color: tweet.isLikedByMe ? 'error.main' : 'text.secondary',
+                '&:hover': {
+                  backgroundColor: tweet.isLikedByMe
+                    ? 'error.light'
+                    : 'action.hover',
+                },
+              }}
+            >
+              {tweet.isLikedByMe ? (
+                <FavoriteIcon fontSize="small" />
+              ) : (
+                <FavoriteBorderIcon fontSize="small" />
+              )}
+            </IconButton>
+            <Typography variant="caption" sx={{ ml: 0.5 }}>
+              {tweet.likesCount}
+            </Typography>
+          </Box>
         </Box>
 
-        {/* Ícone de Like */}
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+        {isMyTweet && (
           <IconButton
             size="small"
-            aria-label="like"
-            onClick={handleLikeToggle}
+            aria-label="delete"
+            onClick={handleDeleteTweet}
             sx={{
               p: 0.5,
-              color: tweet.isLikedByMe ? 'error.main' : 'text.secondary', // MUI usa 'error.main' para vermelho
+              color: 'text.secondary',
               '&:hover': {
-                backgroundColor: tweet.isLikedByMe
-                  ? 'error.light'
-                  : 'action.hover',
+                color: 'error.main',
+                backgroundColor: 'error.light',
               },
             }}
           >
-            {tweet.isLikedByMe ? (
-              <FavoriteIcon fontSize="small" />
-            ) : (
-              <FavoriteBorderIcon fontSize="small" />
-            )}
+            <DeleteOutlineIcon fontSize="small" />
           </IconButton>
-          <Typography variant="caption" sx={{ ml: 0.5 }}>
-            {tweet.likesCount}
-          </Typography>
-        </Box>
+        )}
       </Box>
     </Box>
   )

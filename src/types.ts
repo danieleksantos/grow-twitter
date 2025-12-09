@@ -2,7 +2,11 @@ export interface User {
   id: string
   username: string
   name: string
-  imageUrl: string
+  email: string
+  imageUrl: string | null
+  followersCount: number
+  followingCount: number
+  isFollowing: boolean
 }
 
 export interface Tweet {
