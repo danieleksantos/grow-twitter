@@ -9,8 +9,8 @@ import {
   CircularProgress,
   Link,
   Grid,
-  Snackbar, // 🚨 Novo import
-  Alert, // 🚨 Novo import
+  Snackbar,
+  Alert,
 } from '@mui/material'
 import { Twitter } from '@mui/icons-material'
 

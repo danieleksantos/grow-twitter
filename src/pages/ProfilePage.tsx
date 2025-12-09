@@ -17,14 +17,12 @@ import { TweetCard } from '../components/TweetCard'
 import { useAppSelector } from '../store/hooks'
 import type { Tweet, User } from '../types'
 
-// --- INTERFACES ---
-
 interface ProfileData extends User {
   followersCount: number
   followingCount: number
   tweetsCount: number
   id: string
-  tweets: Tweet[] // Assumindo que a API retorna os tweets no objeto principal
+  tweets: Tweet[]
 }
 
 interface ProfileState {
@@ -37,8 +35,6 @@ interface ProfileApiResponse {
   success: boolean
   data: ProfileData & { isFollowing?: boolean }
 }
-
-// --- COMPONENTE ---
 
 export const ProfilePage: React.FC = () => {
   const { username: urlUsername } = useParams<{ username: string }>()
@@ -55,7 +51,6 @@ export const ProfilePage: React.FC = () => {
   const [isActionLoading, setIsActionLoading] = useState(false)
   const [isHovering, setIsHovering] = useState(false)
 
-  // --- LÓGICA DE ATUALIZAÇÃO DE TWEETS (Apagar) ---
   const handleTweetDelete = useCallback((tweetId: string) => {
     setProfile((prev) =>
       prev
@@ -73,7 +68,6 @@ export const ProfilePage: React.FC = () => {
     )
   }, [])
 
-  // --- LÓGICA DE BUSCA DO PERFIL (OTIMIZADA PARA UMA CHAMADA) ---
   const fetchProfileData = useCallback(async () => {
     if (!urlUsername) {
       setError('Username não encontrado na URL.')
@@ -85,7 +79,6 @@ export const ProfilePage: React.FC = () => {
     setError(null)
 
     try {
-      // Busca o perfil (inclui tweets, isFollowing e contadores) em UMA SÓ CHAMADA
       const profileResponse = await api.get<ProfileApiResponse>(
         `/users/${urlUsername}`,
       )
@@ -116,7 +109,6 @@ export const ProfilePage: React.FC = () => {
     }
   }, [urlUsername])
 
-  // --- LÓGICA FOLLOW/UNFOLLOW ---
   const handleFollowToggle = useCallback(async () => {
     if (!profile || isViewingOwnProfile || isActionLoading || !profile.user?.id)
       return
@@ -126,7 +118,6 @@ export const ProfilePage: React.FC = () => {
 
     setIsActionLoading(true)
 
-    // 1. Atualização Otimista
     setProfile((prev) =>
       prev
         ? {
@@ -143,17 +134,14 @@ export const ProfilePage: React.FC = () => {
 
     try {
       if (newIsFollowing) {
-        // Tenta Seguir (POST)
         await api.post(`/users/${userIdToFollow}/follow`)
       } else {
-        // Tenta Deixar de Seguir (DELETE)
         await api.delete(`/users/${userIdToFollow}/follow`)
       }
     } catch (error: any) {
       console.error('Erro ao seguir/deixar de seguir:', error)
       const statusCode = error.response?.status
 
-      // TRATAMENTO 409 Conflict / 404 Not Found: Sincroniza
       if (
         (statusCode === 409 && newIsFollowing) ||
         (statusCode === 404 && !newIsFollowing)
@@ -162,9 +150,6 @@ export const ProfilePage: React.FC = () => {
         return
       }
 
-      // Rollback para outros erros (500, etc.)
-
-      // 2. Reverte o estado local (Rollback)
       setProfile((prev) =>
         prev
           ? {
@@ -179,7 +164,6 @@ export const ProfilePage: React.FC = () => {
           : null,
       )
 
-      // 3. Força a sincronização completa
       fetchProfileData()
     } finally {
       setIsActionLoading(false)
@@ -189,10 +173,6 @@ export const ProfilePage: React.FC = () => {
   useEffect(() => {
     fetchProfileData()
   }, [urlUsername, fetchProfileData])
-
-  // -------------------------------------------------------------------
-  // --- RENDERIZAÇÃO ---
-  // -------------------------------------------------------------------
 
   const renderContent = () => {
     if (isLoading) {
@@ -211,16 +191,13 @@ export const ProfilePage: React.FC = () => {
       )
     }
 
-    // ⭐ CORREÇÃO: A desestruturação ocorre SOMENTE AQUI, onde `profile` é garantido existir.
     const { user, tweets, isFollowing } = profile
 
-    // Handlers para o efeito de hover
     const handleMouseEnter = () => setIsHovering(true)
     const handleMouseLeave = () => setIsHovering(false)
 
     return (
       <>
-        {/* Banner */}
         <Box sx={{ height: 200, bgcolor: 'primary.main' }} />
 
         <Box sx={{ p: 2, mt: -8, position: 'relative' }}>
@@ -275,7 +252,6 @@ export const ProfilePage: React.FC = () => {
                     : {},
                 }}
               >
-                {/* Renderiza o Loading ou o texto dinâmico */}
                 {isActionLoading ? (
                   <CircularProgress size={20} color="inherit" />
                 ) : isFollowing ? (
