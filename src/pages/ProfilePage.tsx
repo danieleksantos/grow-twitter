@@ -16,6 +16,7 @@ import api from '../services/api'
 import { TweetCard } from '../components/TweetCard'
 import { useAppSelector } from '../store/hooks'
 import type { Tweet, User } from '../types'
+import { EditProfileModal } from '../components/EditProfileModal'
 
 interface ProfileData extends User {
   followersCount: number
@@ -50,6 +51,23 @@ export const ProfilePage: React.FC = () => {
 
   const [isActionLoading, setIsActionLoading] = useState(false)
   const [isHovering, setIsHovering] = useState(false)
+
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+
+  const handleEditSuccess = (newName: string, newImageUrl: string | null) => {
+    setProfile((prev) =>
+      prev
+        ? {
+            ...prev,
+            user: {
+              ...prev.user!,
+              name: newName,
+              imageUrl: newImageUrl,
+            },
+          }
+        : null,
+    )
+  }
 
   const handleTweetDelete = useCallback((tweetId: string) => {
     setProfile((prev) =>
@@ -221,6 +239,7 @@ export const ProfilePage: React.FC = () => {
             {isViewingOwnProfile ? (
               <Button
                 variant="outlined"
+                onClick={() => setIsEditModalOpen(true)}
                 sx={{
                   borderRadius: 999,
                   textTransform: 'none',
@@ -351,6 +370,13 @@ export const ProfilePage: React.FC = () => {
       </Box>
 
       {renderContent()}
+      <EditProfileModal
+        open={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        initialName={profile?.user?.name || ''}
+        initialImageUrl={profile?.user?.imageUrl || ''}
+        onSuccess={handleEditSuccess}
+      />
     </Box>
   )
 }

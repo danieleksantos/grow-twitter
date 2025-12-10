@@ -65,8 +65,15 @@ const authSlice = createSlice({
       localStorage.removeItem('growtwitter_name')
       localStorage.removeItem('growtwitter_imageUrl')
     },
+    updateUserInfo: (
+      state,
+      action: PayloadAction<{ name: string; imageUrl: string | null }>,
+    ) => {
+      state.name = action.payload.name
+      state.imageUrl = action.payload.imageUrl
+    },
   },
 })
 
-export const { login, logout } = authSlice.actions
+export const { login, logout, updateUserInfo } = authSlice.actions
 export default authSlice.reducer
