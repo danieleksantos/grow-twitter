@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   Box,
   Typography,
@@ -6,6 +6,8 @@ import {
   CircularProgress,
   Paper,
   Grid,
+  Pagination,
+  Stack,
 } from '@mui/material'
 import api from '../services/api'
 import { useNavigate } from 'react-router-dom'
@@ -26,16 +28,26 @@ interface UserExplore {
 export function ExplorePage() {
   const [users, setUsers] = useState<UserExplore[]>([])
   const [loading, setLoading] = useState(true)
+
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(0)
+
   const navigate = useNavigate()
 
   useEffect(() => {
     fetchUsers()
-  }, [])
+  }, [page])
 
   const fetchUsers = async () => {
+    setLoading(true)
     try {
-      const response = await api.get('/users?page=1')
+      const response = await api.get(`/users?page=${page}`)
+
       setUsers(response.data.data)
+
+      const { total, limit } = response.data.meta
+      const calculatedPages = Math.ceil(total / limit)
+      setTotalPages(calculatedPages)
     } catch (error) {
       console.error('Erro ao carregar explorar:', error)
     } finally {
@@ -47,8 +59,20 @@ export function ExplorePage() {
     navigate(`/profile/${username}`)
   }
 
+  // 3. Função para trocar de página
+  const handlePageChange = (
+    event: React.ChangeEvent<unknown>,
+    value: number,
+  ) => {
+    setPage(value)
+    // Opcional: Rolar para o topo suavemente ao trocar de página
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   return (
-    <Box>
+    <Box sx={{ pb: 4 }}>
+      {' '}
+      {/* Adicionado padding bottom para o footer não colar na paginação */}
       <Box
         sx={{
           p: 2,
@@ -64,123 +88,135 @@ export function ExplorePage() {
           Explorar Usuários
         </Typography>
       </Box>
-
-      {/* Lista de Usuários */}
       {loading ? (
         <Box sx={{ p: 4, display: 'flex', justifyContent: 'center' }}>
           <CircularProgress />
         </Box>
       ) : (
         <Box sx={{ p: 0 }}>
-          {users.length === 0 && (
+          {users.length === 0 ? (
             <Typography
               sx={{ p: 3, textAlign: 'center', color: 'text.secondary' }}
             >
               Nenhum usuário encontrado.
             </Typography>
-          )}
+          ) : (
+            <>
+              {users.map((user) => (
+                <Paper
+                  key={user.id}
+                  elevation={0}
+                  onClick={() => handleProfileClick(user.username)}
+                  sx={{
+                    p: 2,
+                    borderBottom: '1px solid #e0e0e0',
+                    borderRadius: 0,
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s',
+                    '&:hover': { bgcolor: '#f5f5f5' },
+                  }}
+                >
+                  <Grid container spacing={2}>
+                    <Grid>
+                      <Avatar
+                        src={user.imageUrl || undefined}
+                        alt={user.name}
+                        sx={{ width: 48, height: 48 }}
+                      />
+                    </Grid>
 
-          {users.map((user) => (
-            <Paper
-              key={user.id}
-              elevation={0}
-              onClick={() => handleProfileClick(user.username)}
-              sx={{
-                p: 2,
-                borderBottom: '1px solid #e0e0e0',
-                borderRadius: 0,
-                cursor: 'pointer',
-                transition: 'background-color 0.2s',
-                '&:hover': { bgcolor: '#f5f5f5' },
-              }}
-            >
-              <Grid container spacing={2}>
-                {/* Avatar */}
-                <Grid>
-                  <Avatar
-                    src={user.imageUrl || undefined}
-                    alt={user.name}
-                    sx={{ width: 48, height: 48 }}
-                  />
-                </Grid>
+                    <Grid>
+                      <Box sx={{ mb: 1 }}>
+                        <Typography
+                          variant="subtitle1"
+                          fontWeight="bold"
+                          component="span"
+                          sx={{ mr: 1 }}
+                        >
+                          {user.name}
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          component="span"
+                        >
+                          @{user.username}
+                        </Typography>
 
-                {/* Conteúdo */}
-                <Grid>
-                  <Box sx={{ mb: 1 }}>
-                    <Typography
-                      variant="subtitle1"
-                      fontWeight="bold"
-                      component="span"
-                      sx={{ mr: 1 }}
-                    >
-                      {user.name}
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      component="span"
-                    >
-                      @{user.username}
-                    </Typography>
+                        {user.isFollowing && (
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              bgcolor: '#e1e8ed',
+                              color: '#657786',
+                              px: 1,
+                              py: 0.2,
+                              borderRadius: 1,
+                              ml: 1,
+                              fontWeight: 'bold',
+                            }}
+                          >
+                            Seguindo
+                          </Typography>
+                        )}
+                      </Box>
 
-                    {user.isFollowing && (
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          bgcolor: '#e1e8ed',
-                          color: '#657786',
-                          px: 1,
-                          py: 0.2,
-                          borderRadius: 1,
-                          ml: 1,
-                          fontWeight: 'bold',
-                        }}
-                      >
-                        Seguindo
-                      </Typography>
-                    )}
-                  </Box>
+                      {user.latestTweet ? (
+                        <Box
+                          sx={{ bgcolor: '#f5f8fa', p: 1.5, borderRadius: 2 }}
+                        >
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            display="block"
+                            sx={{ mb: 0.5 }}
+                          >
+                            Último post:
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              fontStyle: 'italic',
+                              display: '-webkit-box',
+                              overflow: 'hidden',
+                              WebkitBoxOrient: 'vertical',
+                              WebkitLineClamp: 2,
+                            }}
+                          >
+                            "{user.latestTweet.content}"
+                          </Typography>
+                        </Box>
+                      ) : (
+                        <Typography variant="caption" color="text.secondary">
+                          Nenhum tweet recente.
+                        </Typography>
+                      )}
 
-                  {user.latestTweet ? (
-                    <Box sx={{ bgcolor: '#f5f8fa', p: 1.5, borderRadius: 2 }}>
                       <Typography
                         variant="caption"
                         color="text.secondary"
-                        display="block"
-                        sx={{ mb: 0.5 }}
+                        sx={{ mt: 1, display: 'block' }}
                       >
-                        Último post:
+                        {user.followersCount} seguidores
                       </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          fontStyle: 'italic',
-                          display: '-webkit-box',
-                          overflow: 'hidden',
-                          WebkitBoxOrient: 'vertical',
-                          WebkitLineClamp: 2,
-                        }}
-                      >
-                        "{user.latestTweet.content}"
-                      </Typography>
-                    </Box>
-                  ) : (
-                    <Typography variant="caption" color="text.secondary">
-                      Nenhum tweet recente.
-                    </Typography>
-                  )}
+                    </Grid>
+                  </Grid>
+                </Paper>
+              ))}
 
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    sx={{ mt: 1, display: 'block' }}
-                  >
-                    {user.followersCount} seguidores
-                  </Typography>
-                </Grid>
-              </Grid>
-            </Paper>
-          ))}
+              {totalPages > 1 && (
+                <Stack spacing={2} alignItems="center" sx={{ py: 3 }}>
+                  <Pagination
+                    count={totalPages}
+                    page={page}
+                    onChange={handlePageChange}
+                    color="primary"
+                    shape="rounded"
+                  />
+                </Stack>
+              )}
+            </>
+          )}
         </Box>
       )}
     </Box>
