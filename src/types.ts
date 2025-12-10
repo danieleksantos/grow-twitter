@@ -19,3 +19,12 @@ export interface Tweet {
   repliesCount: number
   user: User
 }
+
+export interface Comment {
+  id: string
+  content: string
+  createdAt: string
+  userId: string
+  tweetId: string
+  user: User
+}

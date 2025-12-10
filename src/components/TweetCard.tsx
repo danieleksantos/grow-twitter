@@ -1,15 +1,21 @@
-import React, { useState } from 'react'
-import type { Tweet } from '../types'
-import api from '../services/api'
-import { useAppSelector } from '../store/hooks'
-import { useAuth } from '../store/hooks'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-
-import { Box, Typography, Avatar, IconButton } from '@mui/material'
+import {
+  Box,
+  Typography,
+  Avatar,
+  IconButton,
+  CircularProgress,
+} from '@mui/material'
 import FavoriteIcon from '@mui/icons-material/Favorite'
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder'
 import CommentOutlinedIcon from '@mui/icons-material/CommentOutlined'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
+
+import type { Tweet, Comment } from '../types'
+import api from '../services/api'
+import { useAppSelector, useAuth } from '../store/hooks'
+import { ReplyModal } from './ReplyModal'
 
 interface TweetCardProps {
   tweet: Tweet
@@ -23,9 +29,31 @@ export const TweetCard: React.FC<TweetCardProps> = ({
   const [tweet, setTweet] = useState(initialTweet)
   const { isLoggedIn } = useAuth()
   const navigate = useNavigate()
-
   const loggedUserId = useAppSelector((state) => state.auth.id)
+
+  const [openReplyModal, setOpenReplyModal] = useState(false)
+  const [comments, setComments] = useState<Comment[]>([])
+  const [loadingComments, setLoadingComments] = useState(false)
+
   const isMyTweet = loggedUserId === tweet.user.id
+
+  const fetchComments = useCallback(async () => {
+    setLoadingComments(true)
+    try {
+      const response = await api.get(`/tweets/${tweet.id}/comments`)
+      setComments(response.data.data)
+    } catch (error) {
+      console.error('Erro ao buscar comentários', error)
+    } finally {
+      setLoadingComments(false)
+    }
+  }, [tweet.id])
+
+  useEffect(() => {
+    if (tweet.repliesCount > 0) {
+      fetchComments()
+    }
+  }, [tweet.repliesCount, fetchComments])
 
   const handleLikeToggle = async () => {
     if (!isLoggedIn) {
@@ -44,6 +72,7 @@ export const TweetCard: React.FC<TweetCardProps> = ({
 
     try {
       const url = `/tweets/${tweet.id}/like`
+
       if (isLiking) {
         await api.post(url)
       } else {
@@ -76,6 +105,15 @@ export const TweetCard: React.FC<TweetCardProps> = ({
       console.error('Erro ao deletar o tweet:', error)
       alert('Não foi possível deletar o tweet. Tente novamente.')
     }
+  }
+
+  const handleOpenReply = () => {
+    setOpenReplyModal(true)
+  }
+
+  const handleReplySuccess = () => {
+    setTweet((prev) => ({ ...prev, repliesCount: prev.repliesCount + 1 }))
+    fetchComments()
   }
 
   const handleProfileClick = () => {
@@ -113,7 +151,7 @@ export const TweetCard: React.FC<TweetCardProps> = ({
         onClick={handleProfileClick}
       >
         <Avatar
-          src={tweet.user.imageUrl || '/default_avatar.png'}
+          src={tweet.user.imageUrl || undefined}
           alt={`${tweet.user.name}'s avatar`}
           sx={{ width: 40, height: 40, mr: 1.5 }}
         />
@@ -156,18 +194,21 @@ export const TweetCard: React.FC<TweetCardProps> = ({
               color: 'text.secondary',
             }}
           >
-            <IconButton size="small" aria-label="comments" sx={{ p: 0.5 }}>
+            <IconButton
+              size="small"
+              onClick={handleOpenReply}
+              sx={{ p: 0.5, '&:hover': { color: 'primary.main' } }}
+            >
               <CommentOutlinedIcon fontSize="small" />
             </IconButton>
             <Typography variant="caption" sx={{ ml: 0.5 }}>
-              {tweet.repliesCount}
+              {tweet.repliesCount > 0 ? tweet.repliesCount : ''}
             </Typography>
           </Box>
 
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <IconButton
               size="small"
-              aria-label="like"
               onClick={handleLikeToggle}
               sx={{
                 p: 0.5,
@@ -186,7 +227,7 @@ export const TweetCard: React.FC<TweetCardProps> = ({
               )}
             </IconButton>
             <Typography variant="caption" sx={{ ml: 0.5 }}>
-              {tweet.likesCount}
+              {tweet.likesCount > 0 ? tweet.likesCount : ''}
             </Typography>
           </Box>
         </Box>
@@ -194,7 +235,6 @@ export const TweetCard: React.FC<TweetCardProps> = ({
         {isMyTweet && (
           <IconButton
             size="small"
-            aria-label="delete"
             onClick={handleDeleteTweet}
             sx={{
               p: 0.5,
@@ -209,6 +249,63 @@ export const TweetCard: React.FC<TweetCardProps> = ({
           </IconButton>
         )}
       </Box>
+
+      {(loadingComments || comments.length > 0) && (
+        <Box sx={{ mt: 2, pl: 0 }}>
+          {loadingComments && comments.length === 0 ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 1 }}>
+              <CircularProgress size={20} />
+            </Box>
+          ) : (
+            comments.map((comment) => (
+              <Box
+                key={comment.id}
+                sx={{
+                  display: 'flex',
+                  gap: 1.5,
+                  mt: 1.5,
+                  position: 'relative',
+                }}
+              >
+                <Avatar
+                  src={comment.user.imageUrl || undefined}
+                  sx={{ width: 32, height: 32 }}
+                />
+
+                <Box
+                  sx={{
+                    bgcolor: '#f5f8fa',
+                    p: 1.5,
+                    borderRadius: 3,
+                    flexGrow: 1,
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+                    <Typography
+                      variant="subtitle2"
+                      fontWeight="bold"
+                      sx={{ mr: 1 }}
+                    >
+                      {comment.user.name}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      @{comment.user.username}
+                    </Typography>
+                  </Box>
+                  <Typography variant="body2">{comment.content}</Typography>
+                </Box>
+              </Box>
+            ))
+          )}
+        </Box>
+      )}
+
+      <ReplyModal
+        open={openReplyModal}
+        onClose={() => setOpenReplyModal(false)}
+        tweetId={tweet.id}
+        onReplySuccess={handleReplySuccess}
+      />
     </Box>
   )
 }
