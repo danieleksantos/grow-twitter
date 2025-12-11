@@ -10,6 +10,7 @@ import {
   Link,
   Paper,
   useTheme,
+  useMediaQuery,
 } from '@mui/material'
 import { Twitter } from '@mui/icons-material'
 import { isAxiosError } from 'axios'
@@ -24,6 +25,8 @@ export function LoginPage() {
   const dispatch = useAppDispatch()
   const theme = useTheme()
   const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn)
+
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
 
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -73,44 +76,42 @@ export function LoginPage() {
 
   return (
     <Box sx={{ minHeight: '100vh', position: 'relative', overflow: 'hidden' }}>
-      <Box sx={{ position: 'absolute', top: 24, right: 24, zIndex: 10 }}>
+      <Box sx={{ position: 'absolute', top: 24, right: 24, zIndex: 10, pt: 1 }}>
         <ThemeSwitcher />
       </Box>
 
-      <Box
-        sx={{
-          position: 'absolute',
-          top: '30%',
-          left: 0,
-          zIndex: 0,
-          pointerEvents: 'none',
-          color: theme.palette.primary.main,
-          opacity: 0.4,
-          animation: 'flyAcrossScreen 8s linear infinite',
-          '@keyframes flyAcrossScreen': {
-            '0%': {
-              opacity: 0,
-              transform: 'translate(-20vw, 50px) scale(0.3) rotate(-15deg)',
+      {!isMobile && (
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '30%',
+            left: 0,
+            zIndex: 0,
+            pointerEvents: 'none',
+            color: theme.palette.primary.main,
+            opacity: 0.4,
+            animation: 'flyAcrossScreen 8s linear infinite',
+            '@keyframes flyAcrossScreen': {
+              '0%': {
+                opacity: 0,
+                transform: 'translate(-20vw, 50px) scale(0.3) rotate(-15deg)',
+              },
+              '20%': { opacity: 0.4 },
+              '50%': {
+                opacity: 0.6,
+                transform: 'translate(50vw, -50px) scale(1) rotate(0deg)',
+              },
+              '80%': { opacity: 0.4 },
+              '100%': {
+                opacity: 0,
+                transform: 'translate(120vw, -100px) scale(0.3) rotate(15deg)',
+              },
             },
-            '20%': {
-              opacity: 0.4,
-            },
-            '50%': {
-              opacity: 0.6,
-              transform: 'translate(50vw, -50px) scale(1) rotate(0deg)',
-            },
-            '80%': {
-              opacity: 0.4,
-            },
-            '100%': {
-              opacity: 0,
-              transform: 'translate(120vw, -100px) scale(0.3) rotate(15deg)',
-            },
-          },
-        }}
-      >
-        <Twitter sx={{ fontSize: 250 }} />
-      </Box>
+          }}
+        >
+          <Twitter sx={{ fontSize: 250 }} />
+        </Box>
+      )}
 
       <Container component="main" maxWidth="xs">
         <Box
@@ -136,7 +137,7 @@ export function LoginPage() {
               borderColor: 'divider',
               borderRadius: 4,
               bgcolor: 'background.paper',
-              animation: 'fadeInUp 0.6s ease-out',
+              animation: isMobile ? 'none' : 'fadeInUp 0.6s ease-out',
               '@keyframes fadeInUp': {
                 '0%': { opacity: 0, transform: 'translateY(20px)' },
                 '100%': { opacity: 1, transform: 'translateY(0)' },
