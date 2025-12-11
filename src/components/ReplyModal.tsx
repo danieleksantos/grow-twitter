@@ -87,7 +87,7 @@ export const ReplyModal: React.FC<ReplyModalProps> = ({
             <CloseIcon />
           </IconButton>
           <Typography variant="h6" fontWeight="bold" sx={{ ml: 2 }}>
-            Responder
+            Reply
           </Typography>
         </Box>
 
@@ -102,7 +102,7 @@ export const ReplyModal: React.FC<ReplyModalProps> = ({
             multiline
             minRows={3}
             maxRows={8}
-            placeholder="Poste sua resposta"
+            placeholder="Digite sua resposta..."
             variant="standard"
             value={content}
             onChange={(e) => setContent(e.target.value)}

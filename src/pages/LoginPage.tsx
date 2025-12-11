@@ -9,6 +9,7 @@ import {
   CircularProgress,
   Link,
   Paper,
+  useTheme,
 } from '@mui/material'
 import { Twitter } from '@mui/icons-material'
 import { isAxiosError } from 'axios'
@@ -21,6 +22,7 @@ import { ThemeSwitcher } from '../components/ThemeSwitcher.tsx'
 export function LoginPage() {
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
+  const theme = useTheme()
   const isLoggedIn = useAppSelector((state) => state.auth.isLoggedIn)
 
   const [username, setUsername] = useState('')
@@ -50,15 +52,7 @@ export function LoginPage() {
       const { token, user } = response.data
       const { id, username: userUsername, name, imageUrl } = user
 
-      dispatch(
-        login({
-          token,
-          id,
-          username: userUsername,
-          name,
-          imageUrl,
-        }),
-      )
+      dispatch(login({ token, id, username: userUsername, name, imageUrl }))
 
       navigate('/')
     } catch (err) {
@@ -78,9 +72,44 @@ export function LoginPage() {
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', position: 'relative' }}>
+    <Box sx={{ minHeight: '100vh', position: 'relative', overflow: 'hidden' }}>
       <Box sx={{ position: 'absolute', top: 24, right: 24, zIndex: 10 }}>
         <ThemeSwitcher />
+      </Box>
+
+      <Box
+        sx={{
+          position: 'absolute',
+          top: '30%',
+          left: 0,
+          zIndex: 0,
+          pointerEvents: 'none',
+          color: theme.palette.primary.main,
+          opacity: 0.4,
+          animation: 'flyAcrossScreen 8s linear infinite',
+          '@keyframes flyAcrossScreen': {
+            '0%': {
+              opacity: 0,
+              transform: 'translate(-20vw, 50px) scale(0.3) rotate(-15deg)',
+            },
+            '20%': {
+              opacity: 0.4,
+            },
+            '50%': {
+              opacity: 0.6,
+              transform: 'translate(50vw, -50px) scale(1) rotate(0deg)',
+            },
+            '80%': {
+              opacity: 0.4,
+            },
+            '100%': {
+              opacity: 0,
+              transform: 'translate(120vw, -100px) scale(0.3) rotate(15deg)',
+            },
+          },
+        }}
+      >
+        <Twitter sx={{ fontSize: 250 }} />
       </Box>
 
       <Container component="main" maxWidth="xs">
@@ -91,6 +120,8 @@ export function LoginPage() {
             flexDirection: 'column',
             justifyContent: 'center',
             alignItems: 'center',
+            position: 'relative',
+            zIndex: 2,
           }}
         >
           <Paper
@@ -105,6 +136,11 @@ export function LoginPage() {
               borderColor: 'divider',
               borderRadius: 4,
               bgcolor: 'background.paper',
+              animation: 'fadeInUp 0.6s ease-out',
+              '@keyframes fadeInUp': {
+                '0%': { opacity: 0, transform: 'translateY(20px)' },
+                '100%': { opacity: 1, transform: 'translateY(0)' },
+              },
             }}
           >
             <Twitter sx={{ fontSize: 40, color: 'primary.main', mb: 2 }} />
@@ -136,7 +172,7 @@ export function LoginPage() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 disabled={isLoading}
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                slotProps={{ input: { sx: { borderRadius: 2 } } }}
               />
               <TextField
                 margin="normal"
@@ -150,7 +186,7 @@ export function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={isLoading}
-                sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                slotProps={{ input: { sx: { borderRadius: 2 } } }}
               />
 
               {error && (

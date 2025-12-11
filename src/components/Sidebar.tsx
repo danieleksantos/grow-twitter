@@ -63,8 +63,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
       }}
     >
       <Box>
-        <Box sx={{ pl: 1.5, mb: 1 }}>
+        <Box
+          sx={{
+            pl: 1.5,
+            mb: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
           <Twitter sx={{ fontSize: 35, color: 'primary.main' }} />
+
+          <ThemeSwitcher />
         </Box>
 
         <List disablePadding>
@@ -128,13 +138,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </Box>
 
       <Stack spacing={2} sx={{ mb: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', pl: 1, gap: 1 }}>
-          <Typography variant="body2" fontWeight="bold">
-            Tema:
-          </Typography>
-          <ThemeSwitcher />
-        </Box>
-
         <Box
           onClick={handleLogout}
           sx={{
