@@ -12,6 +12,8 @@ import {
   useTheme,
 } from '@mui/material'
 import ArrowBackIcon from '@mui/icons-material/ArrowBack'
+import { isAxiosError } from 'axios'
+
 import api from '../services/api'
 import { TweetCard } from '../components/TweetCard'
 import { useAppSelector } from '../store/hooks'
@@ -51,7 +53,6 @@ export const ProfilePage: React.FC = () => {
 
   const [isActionLoading, setIsActionLoading] = useState(false)
   const [isHovering, setIsHovering] = useState(false)
-
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
 
   const handleEditSuccess = (newName: string, newImageUrl: string | null) => {
@@ -78,7 +79,7 @@ export const ProfilePage: React.FC = () => {
             user: prev.user
               ? {
                   ...prev.user,
-                  tweetsCount: prev.user.tweetsCount - 1,
+                  tweetsCount: Math.max(0, prev.user.tweetsCount - 1),
                 }
               : null,
           }
@@ -112,12 +113,17 @@ export const ProfilePage: React.FC = () => {
         tweets,
         isFollowing,
       })
-    } catch (err: any) {
+    } catch (err) {
       console.error('Erro ao carregar o perfil:', err)
 
       let message = 'Falha ao carregar o perfil.'
-      if (err.response?.status === 404) {
-        message = `Erro 404: Usuário @${urlUsername} não encontrado.`
+
+      if (isAxiosError(err)) {
+        if (err.response?.status === 404) {
+          message = `Erro 404: Usuário @${urlUsername} não encontrado.`
+        } else if (err.response?.data?.message) {
+          message = err.response.data.message
+        }
       }
 
       setError(message)
@@ -156,9 +162,13 @@ export const ProfilePage: React.FC = () => {
       } else {
         await api.delete(`/users/${userIdToFollow}/follow`)
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Erro ao seguir/deixar de seguir:', error)
-      const statusCode = error.response?.status
+
+      let statusCode = 0
+      if (isAxiosError(error)) {
+        statusCode = error.response?.status || 0
+      }
 
       if (
         (statusCode === 409 && newIsFollowing) ||
@@ -216,6 +226,7 @@ export const ProfilePage: React.FC = () => {
 
     return (
       <>
+        {/* Capa */}
         <Box sx={{ height: 200, bgcolor: 'primary.main' }} />
 
         <Box sx={{ p: 2, mt: -8, position: 'relative' }}>
@@ -230,9 +241,12 @@ export const ProfilePage: React.FC = () => {
               src={user.imageUrl || undefined}
               alt={user.name}
               sx={{
-                width: 120,
-                height: 120,
+                width: 134,
+                height: 134,
                 border: `4px solid ${theme.palette.background.default}`,
+                cursor: 'pointer',
+                transition: 'filter 0.2s',
+                '&:hover': { filter: 'brightness(0.95)' },
               }}
             />
 
@@ -243,8 +257,12 @@ export const ProfilePage: React.FC = () => {
                 sx={{
                   borderRadius: 999,
                   textTransform: 'none',
-                  px: 3,
+                  px: 2,
                   py: 0.5,
+                  fontWeight: 'bold',
+                  borderColor: 'divider',
+                  color: 'text.primary',
+                  '&:hover': { bgcolor: 'action.hover' },
                 }}
               >
                 Editar Perfil
@@ -261,69 +279,137 @@ export const ProfilePage: React.FC = () => {
                   borderRadius: 999,
                   textTransform: 'none',
                   px: 3,
-                  py: 0.5,
-                  '&:hover': isFollowing
-                    ? {
-                        bgcolor: 'error.light',
-                        borderColor: 'error.main',
-                        color: theme.palette.error.main,
-                      }
-                    : {},
+                  py: 0.8,
+                  fontWeight: 'bold',
+                  minWidth: 120,
+                  ...(isFollowing && {
+                    borderColor: 'divider',
+                    color: 'text.primary',
+                    '&:hover': {
+                      bgcolor: 'error.light',
+                      borderColor: 'error.main',
+                      color: 'error.main',
+                    },
+                  }),
                 }}
               >
                 {isActionLoading ? (
                   <CircularProgress size={20} color="inherit" />
                 ) : isFollowing ? (
                   isHovering ? (
-                    'Unfollow'
+                    'Deixar de seguir'
                   ) : (
-                    'Following'
+                    'Seguindo'
                   )
                 ) : (
-                  'Follow'
+                  'Seguir'
                 )}
               </Button>
             )}
           </Box>
 
-          <Typography variant="h5" fontWeight="bold" sx={{ mt: 1 }}>
+          <Typography variant="h5" fontWeight={800} sx={{ mt: 1 }}>
             {user.name}
           </Typography>
           <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 2 }}>
             @{user.username}
           </Typography>
 
-          <Box sx={{ display: 'flex', gap: 2 }}>
-            <Typography variant="body2" color="text.secondary">
-              <Typography
-                component="span"
-                fontWeight="bold"
-                color="text.primary"
-              >
+          <Box sx={{ display: 'flex', gap: 2.5 }}>
+            <Box
+              sx={{
+                display: 'flex',
+                gap: 0.5,
+                cursor: 'pointer',
+                '&:hover': { textDecoration: 'underline' },
+              }}
+            >
+              <Typography fontWeight="bold" color="text.primary">
                 {user.followingCount}
-              </Typography>{' '}
-              Seguindo
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              <Typography
-                component="span"
-                fontWeight="bold"
-                color="text.primary"
-              >
+              </Typography>
+              <Typography color="text.secondary">Seguindo</Typography>
+            </Box>
+
+            <Box
+              sx={{
+                display: 'flex',
+                gap: 0.5,
+                cursor: 'pointer',
+                '&:hover': { textDecoration: 'underline' },
+              }}
+            >
+              <Typography fontWeight="bold" color="text.primary">
                 {user.followersCount}
-              </Typography>{' '}
-              Seguidores
-            </Typography>
+              </Typography>
+              <Typography color="text.secondary">Seguidores</Typography>
+            </Box>
           </Box>
         </Box>
 
-        <Divider sx={{ mt: 2 }} />
+        <Box
+          sx={{
+            display: 'flex',
+            borderBottom: 1,
+            borderColor: 'divider',
+            mt: 1,
+          }}
+        >
+          <Box
+            sx={{
+              flex: 1,
+              textAlign: 'center',
+              p: 2,
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              position: 'relative',
+              '&:hover': { bgcolor: 'action.hover' },
+            }}
+          >
+            Tweets
+            <Box
+              sx={{
+                position: 'absolute',
+                bottom: 0,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: 56,
+                height: 4,
+                bgcolor: 'primary.main',
+                borderRadius: 2,
+              }}
+            />
+          </Box>
+          <Box
+            sx={{
+              flex: 1,
+              textAlign: 'center',
+              p: 2,
+              color: 'text.secondary',
+              cursor: 'pointer',
+              '&:hover': { bgcolor: 'action.hover' },
+            }}
+          >
+            Respostas
+          </Box>
+          <Box
+            sx={{
+              flex: 1,
+              textAlign: 'center',
+              p: 2,
+              color: 'text.secondary',
+              cursor: 'pointer',
+              '&:hover': { bgcolor: 'action.hover' },
+            }}
+          >
+            Curtidas
+          </Box>
+        </Box>
 
         <Box>
           {tweets.length === 0 ? (
             <Typography
               color="text.secondary"
-              sx={{ p: 3, textAlign: 'center' }}
+              sx={{ p: 5, textAlign: 'center' }}
             >
               {isViewingOwnProfile
                 ? 'Você ainda não postou nenhum tweet.'
@@ -333,7 +419,7 @@ export const ProfilePage: React.FC = () => {
             tweets.map((tweet) => (
               <Box key={tweet.id}>
                 <TweetCard tweet={tweet} onDeleteSuccess={handleTweetDelete} />
-                <Divider sx={{ my: 0 }} />
+                <Divider />
               </Box>
             ))
           )}
@@ -343,33 +429,45 @@ export const ProfilePage: React.FC = () => {
   }
 
   return (
-    <Box>
+    <Box sx={{ pb: 10 }}>
       <Box
         sx={{
-          p: 1.5,
-          borderBottom: '1px solid #e0e0e0',
+          px: 2,
+          py: 1,
+          borderBottom: 1,
+          borderColor: 'divider',
           display: 'flex',
           alignItems: 'center',
           position: 'sticky',
           top: 0,
           zIndex: 10,
-          bgcolor: 'background.default',
+          bgcolor:
+            theme.palette.mode === 'dark'
+              ? 'rgba(0,0,0,0.7)'
+              : 'rgba(255,255,255,0.85)',
+          backdropFilter: 'blur(12px)',
         }}
       >
-        <IconButton onClick={() => navigate(-1)} sx={{ mr: 2 }}>
+        <IconButton
+          onClick={() => navigate(-1)}
+          sx={{ mr: 2, color: 'text.primary' }}
+        >
           <ArrowBackIcon />
         </IconButton>
         <Box>
-          <Typography variant="h6" fontWeight="bold" lineHeight={1}>
+          <Typography variant="h6" fontWeight="bold" lineHeight={1.2}>
             {profile?.user?.name || urlUsername}
           </Typography>
-          <Typography variant="caption" color="text.secondary">
-            {profile?.user?.tweetsCount || 0} Tweets
-          </Typography>
+          {profile?.user && (
+            <Typography variant="caption" color="text.secondary">
+              {profile.user.tweetsCount} Tweets
+            </Typography>
+          )}
         </Box>
       </Box>
 
       {renderContent()}
+
       <EditProfileModal
         open={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}

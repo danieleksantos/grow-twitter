@@ -9,6 +9,7 @@ import {
   IconButton,
   CircularProgress,
   Divider,
+  useTheme,
 } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
 import api from '../services/api'
@@ -29,6 +30,7 @@ export const ReplyModal: React.FC<ReplyModalProps> = ({
 }) => {
   const [content, setContent] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const theme = useTheme()
 
   const loggedUserImageUrl = useAppSelector((state) => state.auth.imageUrl)
   const loggedUsername = useAppSelector((state) => state.auth.username)
@@ -53,12 +55,13 @@ export const ReplyModal: React.FC<ReplyModalProps> = ({
 
   const modalStyle = {
     position: 'absolute' as const,
-    top: '30%',
+    top: '10%',
     left: '50%',
-    transform: 'translate(-50%, -30%)',
-    width: 600,
+    transform: 'translate(-50%, 0)',
+    width: { xs: '95%', sm: 600 },
     bgcolor: 'background.paper',
-    borderRadius: 3,
+    color: 'text.primary',
+    borderRadius: 4,
     boxShadow: 24,
     p: 0,
     outline: 'none',
@@ -72,13 +75,18 @@ export const ReplyModal: React.FC<ReplyModalProps> = ({
             p: 1.5,
             display: 'flex',
             alignItems: 'center',
-            borderBottom: '1px solid #eee',
+            borderBottom: 1,
+            borderColor: 'divider',
           }}
         >
-          <IconButton onClick={onClose} disabled={isLoading}>
+          <IconButton
+            onClick={isLoading ? undefined : onClose}
+            disabled={isLoading}
+            sx={{ color: 'primary.main' }}
+          >
             <CloseIcon />
           </IconButton>
-          <Typography variant="h6" sx={{ ml: 2 }}>
+          <Typography variant="h6" fontWeight="bold" sx={{ ml: 2 }}>
             Responder
           </Typography>
         </Box>
@@ -87,29 +95,50 @@ export const ReplyModal: React.FC<ReplyModalProps> = ({
           <Avatar
             src={loggedUserImageUrl || undefined}
             alt={loggedUsername || ''}
+            sx={{ width: 48, height: 48 }}
           />
           <TextField
             fullWidth
             multiline
-            rows={3}
+            minRows={3}
+            maxRows={8}
             placeholder="Poste sua resposta"
             variant="standard"
             value={content}
             onChange={(e) => setContent(e.target.value)}
             disabled={isLoading}
-            InputProps={{ disableUnderline: true }}
+            InputProps={{
+              disableUnderline: true,
+              style: {
+                fontSize: '1.25rem',
+                color: theme.palette.text.primary,
+              },
+            }}
           />
         </Box>
 
-        <Divider />
+        <Divider sx={{ borderColor: 'divider' }} />
 
-        <Box sx={{ p: 2, display: 'flex', justifyContent: 'flex-end' }}>
+        <Box
+          sx={{
+            p: 2,
+            display: 'flex',
+            justifyContent: 'flex-end',
+            alignItems: 'center',
+          }}
+        >
           {isLoading && <CircularProgress size={24} sx={{ mr: 2 }} />}
+
           <Button
             variant="contained"
             onClick={handleReply}
             disabled={!content.trim() || isLoading}
-            sx={{ borderRadius: 999, textTransform: 'none' }}
+            sx={{
+              borderRadius: 999,
+              textTransform: 'none',
+              fontWeight: 'bold',
+              px: 3,
+            }}
           >
             Responder
           </Button>

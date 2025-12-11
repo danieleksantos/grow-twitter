@@ -1,13 +1,14 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import {
   Box,
   Typography,
   Avatar,
   CircularProgress,
-  Paper,
-  Grid,
   Pagination,
   Stack,
+  useTheme,
+  Chip,
+  alpha,
 } from '@mui/material'
 import api from '../services/api'
 import { useNavigate } from 'react-router-dom'
@@ -28,17 +29,13 @@ interface UserExplore {
 export function ExplorePage() {
   const [users, setUsers] = useState<UserExplore[]>([])
   const [loading, setLoading] = useState(true)
-
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(0)
 
+  const theme = useTheme()
   const navigate = useNavigate()
 
-  useEffect(() => {
-    fetchUsers()
-  }, [page])
-
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setLoading(true)
     try {
       const response = await api.get(`/users?page=${page}`)
@@ -53,41 +50,42 @@ export function ExplorePage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [page])
+
+  useEffect(() => {
+    fetchUsers()
+  }, [fetchUsers])
 
   const handleProfileClick = (username: string) => {
     navigate(`/profile/${username}`)
   }
 
-  // 3. Função para trocar de página
-  const handlePageChange = (
-    event: React.ChangeEvent<unknown>,
-    value: number,
-  ) => {
+  const handlePageChange = (_: React.ChangeEvent<unknown>, value: number) => {
     setPage(value)
-    // Opcional: Rolar para o topo suavemente ao trocar de página
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   return (
-    <Box sx={{ pb: 4 }}>
-      {' '}
-      {/* Adicionado padding bottom para o footer não colar na paginação */}
+    <Box sx={{ pb: 4, width: '100%', position: 'relative' }}>
       <Box
         sx={{
           p: 2,
-          borderBottom: '1px solid #e0e0e0',
+          borderBottom: `1px solid ${theme.palette.divider}`,
           position: 'sticky',
           top: 0,
-          bgcolor: 'rgba(255, 255, 255, 0.95)',
-          backdropFilter: 'blur(10px)',
-          zIndex: 100,
+          zIndex: 10,
+          bgcolor:
+            theme.palette.mode === 'dark'
+              ? 'rgba(0,0,0,0.7)'
+              : 'rgba(255,255,255,0.85)',
+          backdropFilter: 'blur(12px)',
         }}
       >
         <Typography variant="h6" fontWeight="bold">
           Explorar Usuários
         </Typography>
       </Box>
+
       {loading ? (
         <Box sx={{ p: 4, display: 'flex', justifyContent: 'center' }}>
           <CircularProgress />
@@ -103,105 +101,127 @@ export function ExplorePage() {
           ) : (
             <>
               {users.map((user) => (
-                <Paper
+                <Box
                   key={user.id}
-                  elevation={0}
                   onClick={() => handleProfileClick(user.username)}
                   sx={{
                     p: 2,
-                    borderBottom: '1px solid #e0e0e0',
-                    borderRadius: 0,
+                    borderBottom: `1px solid ${theme.palette.divider}`,
                     cursor: 'pointer',
                     transition: 'background-color 0.2s',
-                    '&:hover': { bgcolor: '#f5f5f5' },
+                    display: 'flex',
+                    gap: 2,
+                    '&:hover': {
+                      bgcolor: 'action.hover',
+                    },
                   }}
                 >
-                  <Grid container spacing={2}>
-                    <Grid>
-                      <Avatar
-                        src={user.imageUrl || undefined}
-                        alt={user.name}
-                        sx={{ width: 48, height: 48 }}
-                      />
-                    </Grid>
+                  <Avatar
+                    src={user.imageUrl || undefined}
+                    alt={user.name}
+                    sx={{ width: 48, height: 48 }}
+                  />
 
-                    <Grid>
-                      <Box sx={{ mb: 1 }}>
+                  <Box sx={{ flexGrow: 1 }}>
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        mb: 0.5,
+                        flexWrap: 'wrap',
+                      }}
+                    >
+                      <Typography
+                        variant="subtitle1"
+                        fontWeight="bold"
+                        component="span"
+                        sx={{
+                          mr: 1,
+                          '&:hover': { textDecoration: 'underline' },
+                        }}
+                      >
+                        {user.name}
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        component="span"
+                      >
+                        @{user.username}
+                      </Typography>
+
+                      {user.isFollowing && (
+                        <Chip
+                          label="Seguindo"
+                          size="small"
+                          sx={{
+                            ml: 1,
+                            height: 20,
+                            fontSize: '0.7rem',
+                            fontWeight: 'bold',
+                            bgcolor:
+                              theme.palette.mode === 'dark'
+                                ? 'rgba(255,255,255,0.1)'
+                                : '#eff3f4',
+                            color: 'text.secondary',
+                          }}
+                        />
+                      )}
+                    </Box>
+
+                    {user.latestTweet ? (
+                      <Box
+                        sx={{
+                          mt: 1,
+                          p: 1.5,
+                          borderRadius: 3,
+                          bgcolor:
+                            theme.palette.mode === 'dark'
+                              ? alpha(theme.palette.common.white, 0.05)
+                              : alpha(theme.palette.common.black, 0.03),
+                        }}
+                      >
                         <Typography
-                          variant="subtitle1"
-                          fontWeight="bold"
-                          component="span"
-                          sx={{ mr: 1 }}
+                          variant="caption"
+                          color="text.secondary"
+                          display="block"
+                          sx={{ mb: 0.5, fontWeight: 'bold' }}
                         >
-                          {user.name}
+                          Último Tweet:
                         </Typography>
                         <Typography
                           variant="body2"
-                          color="text.secondary"
-                          component="span"
+                          color="text.primary"
+                          sx={{
+                            fontStyle: 'italic',
+                            display: '-webkit-box',
+                            overflow: 'hidden',
+                            WebkitBoxOrient: 'vertical',
+                            WebkitLineClamp: 2,
+                          }}
                         >
-                          @{user.username}
+                          "{user.latestTweet.content}"
                         </Typography>
-
-                        {user.isFollowing && (
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              bgcolor: '#e1e8ed',
-                              color: '#657786',
-                              px: 1,
-                              py: 0.2,
-                              borderRadius: 1,
-                              ml: 1,
-                              fontWeight: 'bold',
-                            }}
-                          >
-                            Seguindo
-                          </Typography>
-                        )}
                       </Box>
-
-                      {user.latestTweet ? (
-                        <Box
-                          sx={{ bgcolor: '#f5f8fa', p: 1.5, borderRadius: 2 }}
-                        >
-                          <Typography
-                            variant="caption"
-                            color="text.secondary"
-                            display="block"
-                            sx={{ mb: 0.5 }}
-                          >
-                            Último post:
-                          </Typography>
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              fontStyle: 'italic',
-                              display: '-webkit-box',
-                              overflow: 'hidden',
-                              WebkitBoxOrient: 'vertical',
-                              WebkitLineClamp: 2,
-                            }}
-                          >
-                            "{user.latestTweet.content}"
-                          </Typography>
-                        </Box>
-                      ) : (
-                        <Typography variant="caption" color="text.secondary">
-                          Nenhum tweet recente.
-                        </Typography>
-                      )}
-
+                    ) : (
                       <Typography
                         variant="caption"
                         color="text.secondary"
                         sx={{ mt: 1, display: 'block' }}
                       >
-                        {user.followersCount} seguidores
+                        Nenhum tweet recente.
                       </Typography>
-                    </Grid>
-                  </Grid>
-                </Paper>
+                    )}
+
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ mt: 1.5, display: 'block' }}
+                    >
+                      {user.followersCount} seguidores
+                    </Typography>
+                  </Box>
+                </Box>
               ))}
 
               {totalPages > 1 && (
@@ -212,6 +232,11 @@ export function ExplorePage() {
                     onChange={handlePageChange}
                     color="primary"
                     shape="rounded"
+                    sx={{
+                      '& .MuiPaginationItem-root': {
+                        color: 'text.primary',
+                      },
+                    }}
                   />
                 </Stack>
               )}

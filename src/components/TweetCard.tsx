@@ -6,16 +6,21 @@ import {
   Avatar,
   IconButton,
   CircularProgress,
+  useTheme,
 } from '@mui/material'
 import FavoriteIcon from '@mui/icons-material/Favorite'
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder'
 import CommentOutlinedIcon from '@mui/icons-material/CommentOutlined'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
+import Swal from 'sweetalert2'
+import withReactContent from 'sweetalert2-react-content'
 
 import type { Tweet, Comment } from '../types'
 import api from '../services/api'
 import { useAppSelector, useAuth } from '../store/hooks'
 import { ReplyModal } from './ReplyModal'
+
+const MySwal = withReactContent(Swal)
 
 interface TweetCardProps {
   tweet: Tweet
@@ -30,6 +35,7 @@ export const TweetCard: React.FC<TweetCardProps> = ({
   const { isLoggedIn } = useAuth()
   const navigate = useNavigate()
   const loggedUserId = useAppSelector((state) => state.auth.id)
+  const theme = useTheme()
 
   const [openReplyModal, setOpenReplyModal] = useState(false)
   const [comments, setComments] = useState<Comment[]>([])
@@ -55,11 +61,9 @@ export const TweetCard: React.FC<TweetCardProps> = ({
     }
   }, [tweet.repliesCount, fetchComments])
 
-  const handleLikeToggle = async () => {
-    if (!isLoggedIn) {
-      alert('Você precisa estar logado para curtir um tweet.')
-      return
-    }
+  const handleLikeToggle = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!isLoggedIn) return
 
     const isLiking = !tweet.isLikedByMe
     const newLikesCount = tweet.likesCount + (isLiking ? 1 : -1)
@@ -72,42 +76,66 @@ export const TweetCard: React.FC<TweetCardProps> = ({
 
     try {
       const url = `/tweets/${tweet.id}/like`
-
-      if (isLiking) {
-        await api.post(url)
-      } else {
-        await api.delete(url)
-      }
-    } catch (error) {
-      console.error('Erro ao curtir/descurtir o tweet:', error)
+      if (isLiking) await api.post(url)
+      else await api.delete(url)
+    } catch {
       setTweet(initialTweet)
-      alert('Não foi possível realizar a ação. Tente novamente.')
     }
   }
 
-  const handleDeleteTweet = async () => {
-    if (!isMyTweet) {
-      alert('Você só pode deletar seus próprios tweets.')
-      return
-    }
+  const handleDeleteTweet = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!isMyTweet) return
 
-    if (!window.confirm('Tem certeza que deseja deletar este tweet?')) {
+    const result = await MySwal.fire({
+      title: 'Excluir tweet?',
+      text: 'Essa ação não poderá ser desfeita.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#f4212e',
+      cancelButtonColor: '#1d9bf0',
+      confirmButtonText: 'Sim, excluir',
+      cancelButtonText: 'Cancelar',
+      background: theme.palette.background.paper,
+      color: theme.palette.text.primary,
+      iconColor: '#f4212e',
+      customClass: {
+        popup: 'swal-custom-popup',
+      },
+    })
+
+    if (!result.isConfirmed) {
       return
     }
 
     try {
       await api.delete(`/tweets/${tweet.id}`)
 
-      if (onDeleteSuccess) {
-        onDeleteSuccess(tweet.id)
-      }
+      MySwal.fire({
+        title: 'Deletado!',
+        text: 'Seu tweet foi removido.',
+        icon: 'success',
+        timer: 1500,
+        showConfirmButton: false,
+        background: theme.palette.background.paper,
+        color: theme.palette.text.primary,
+      })
+
+      if (onDeleteSuccess) onDeleteSuccess(tweet.id)
     } catch (error) {
-      console.error('Erro ao deletar o tweet:', error)
-      alert('Não foi possível deletar o tweet. Tente novamente.')
+      console.error('Erro ao deletar:', error)
+      MySwal.fire({
+        title: 'Erro',
+        text: 'Não foi possível deletar o tweet.',
+        icon: 'error',
+        background: theme.palette.background.paper,
+        color: theme.palette.text.primary,
+      })
     }
   }
 
-  const handleOpenReply = () => {
+  const handleOpenReply = (e: React.MouseEvent) => {
+    e.stopPropagation()
     setOpenReplyModal(true)
   }
 
@@ -116,189 +144,164 @@ export const TweetCard: React.FC<TweetCardProps> = ({
     fetchComments()
   }
 
-  const handleProfileClick = () => {
+  const handleProfileClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
     navigate(`/profile/${tweet.user.username}`)
   }
 
   const formattedDate = new Date(tweet.createdAt).toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: 'short',
     hour: '2-digit',
     minute: '2-digit',
-    day: '2-digit',
-    month: '2-digit',
   })
 
   return (
     <Box
       sx={{
-        border: '1px solid #e0e0e0',
-        padding: 2,
-        marginBottom: 1,
-        borderRadius: 2,
-        backgroundColor: '#fff',
-        transition: 'background-color 0.2s',
+        p: 2,
+        cursor: 'pointer',
+        transition: '0.2s',
         '&:hover': {
-          backgroundColor: '#f9f9f9',
+          bgcolor: 'action.hover',
         },
       }}
     >
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          mb: 1.5,
-          cursor: 'pointer',
-        }}
-        onClick={handleProfileClick}
-      >
-        <Avatar
-          src={tweet.user.imageUrl || undefined}
-          alt={`${tweet.user.name}'s avatar`}
-          sx={{ width: 40, height: 40, mr: 1.5 }}
-        />
-        <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
-          <Typography
-            variant="subtitle1"
-            component="span"
-            sx={{
-              fontWeight: 'bold',
-              mr: 0.5,
-              '&:hover': { textDecoration: 'underline' },
-            }}
-          >
-            {tweet.user.name}
-          </Typography>
-          <Typography
-            variant="body2"
-            component="span"
-            color="text.secondary"
-            sx={{ mr: 1 }}
-          >
-            @{tweet.user.username}
-          </Typography>
-          <Typography variant="caption" color="text.disabled">
-            {formattedDate}
-          </Typography>
+      <Box sx={{ display: 'flex', gap: 1.5 }}>
+        <Box onClick={handleProfileClick}>
+          <Avatar
+            src={tweet.user.imageUrl || undefined}
+            alt={tweet.user.name}
+            sx={{ width: 48, height: 48 }}
+          />
         </Box>
-      </Box>
 
-      <Typography variant="body1" sx={{ mb: 2, whiteSpace: 'pre-wrap' }}>
-        {tweet.content}
-      </Typography>
-
-      <Box sx={{ display: 'flex', gap: 2, justifyContent: 'space-between' }}>
-        <Box sx={{ display: 'flex', gap: 2 }}>
+        <Box sx={{ flexGrow: 1 }}>
           <Box
             sx={{
               display: 'flex',
               alignItems: 'center',
-              color: 'text.secondary',
+              mb: 0.5,
+              flexWrap: 'wrap',
             }}
           >
-            <IconButton
-              size="small"
-              onClick={handleOpenReply}
-              sx={{ p: 0.5, '&:hover': { color: 'primary.main' } }}
-            >
-              <CommentOutlinedIcon fontSize="small" />
-            </IconButton>
-            <Typography variant="caption" sx={{ ml: 0.5 }}>
-              {tweet.repliesCount > 0 ? tweet.repliesCount : ''}
+            <Typography variant="subtitle1" fontWeight="bold" sx={{ mr: 0.5 }}>
+              {tweet.user.name}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mr: 0.5 }}>
+              @{tweet.user.username}
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              · {formattedDate}
             </Typography>
           </Box>
 
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <IconButton
-              size="small"
-              onClick={handleLikeToggle}
+          <Typography variant="body1" sx={{ mb: 1.5, whiteSpace: 'pre-wrap' }}>
+            {tweet.content}
+          </Typography>
+
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              maxWidth: 400,
+            }}
+          >
+            <Box
               sx={{
-                p: 0.5,
-                color: tweet.isLikedByMe ? 'error.main' : 'text.secondary',
-                '&:hover': {
-                  backgroundColor: tweet.isLikedByMe
-                    ? 'error.light'
-                    : 'action.hover',
-                },
+                display: 'flex',
+                alignItems: 'center',
+                color: 'text.secondary',
+                '&:hover': { color: 'primary.main' },
               }}
             >
-              {tweet.isLikedByMe ? (
-                <FavoriteIcon fontSize="small" />
-              ) : (
-                <FavoriteBorderIcon fontSize="small" />
-              )}
-            </IconButton>
-            <Typography variant="caption" sx={{ ml: 0.5 }}>
-              {tweet.likesCount > 0 ? tweet.likesCount : ''}
-            </Typography>
-          </Box>
-        </Box>
-
-        {isMyTweet && (
-          <IconButton
-            size="small"
-            onClick={handleDeleteTweet}
-            sx={{
-              p: 0.5,
-              color: 'text.secondary',
-              '&:hover': {
-                color: 'error.main',
-                backgroundColor: 'error.light',
-              },
-            }}
-          >
-            <DeleteOutlineIcon fontSize="small" />
-          </IconButton>
-        )}
-      </Box>
-
-      {(loadingComments || comments.length > 0) && (
-        <Box sx={{ mt: 2, pl: 0 }}>
-          {loadingComments && comments.length === 0 ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', p: 1 }}>
-              <CircularProgress size={20} />
+              <IconButton
+                size="small"
+                onClick={handleOpenReply}
+                color="inherit"
+              >
+                <CommentOutlinedIcon fontSize="small" />
+              </IconButton>
+              <Typography variant="caption">
+                {tweet.repliesCount || ''}
+              </Typography>
             </Box>
-          ) : (
-            comments.map((comment) => (
-              <Box
-                key={comment.id}
+
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                color: tweet.isLikedByMe ? 'error.main' : 'text.secondary',
+                '&:hover': { color: 'error.main' },
+              }}
+            >
+              <IconButton
+                size="small"
+                onClick={handleLikeToggle}
+                color="inherit"
+              >
+                {tweet.isLikedByMe ? (
+                  <FavoriteIcon fontSize="small" />
+                ) : (
+                  <FavoriteBorderIcon fontSize="small" />
+                )}
+              </IconButton>
+              <Typography variant="caption">
+                {tweet.likesCount || ''}
+              </Typography>
+            </Box>
+
+            {isMyTweet && (
+              <IconButton
+                size="small"
+                onClick={handleDeleteTweet}
                 sx={{
-                  display: 'flex',
-                  gap: 1.5,
-                  mt: 1.5,
-                  position: 'relative',
+                  color: 'text.secondary',
+                  '&:hover': { color: 'error.main' },
                 }}
               >
-                <Avatar
-                  src={comment.user.imageUrl || undefined}
-                  sx={{ width: 32, height: 32 }}
-                />
+                <DeleteOutlineIcon fontSize="small" />
+              </IconButton>
+            )}
+          </Box>
 
-                <Box
-                  sx={{
-                    bgcolor: '#f5f8fa',
-                    p: 1.5,
-                    borderRadius: 3,
-                    flexGrow: 1,
-                  }}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
-                    <Typography
-                      variant="subtitle2"
-                      fontWeight="bold"
-                      sx={{ mr: 1 }}
+          {(loadingComments || comments.length > 0) && (
+            <Box sx={{ mt: 2 }}>
+              {loadingComments && comments.length === 0 ? (
+                <CircularProgress size={20} />
+              ) : (
+                comments.map((comment) => (
+                  <Box
+                    key={comment.id}
+                    sx={{ display: 'flex', gap: 1.5, mt: 2 }}
+                  >
+                    <Avatar
+                      src={comment.user.imageUrl || undefined}
+                      sx={{ width: 32, height: 32 }}
+                    />
+                    <Box
+                      sx={{
+                        bgcolor:
+                          theme.palette.mode === 'dark'
+                            ? 'rgba(255,255,255,0.05)'
+                            : '#f5f8fa',
+                        p: 1.5,
+                        borderRadius: 3,
+                        flexGrow: 1,
+                      }}
                     >
-                      {comment.user.name}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      @{comment.user.username}
-                    </Typography>
+                      <Typography variant="subtitle2" fontWeight="bold">
+                        {comment.user.name}
+                      </Typography>
+                      <Typography variant="body2">{comment.content}</Typography>
+                    </Box>
                   </Box>
-                  <Typography variant="body2">{comment.content}</Typography>
-                </Box>
-              </Box>
-            ))
+                ))
+              )}
+            </Box>
           )}
         </Box>
-      )}
+      </Box>
 
       <ReplyModal
         open={openReplyModal}

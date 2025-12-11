@@ -1,73 +1,129 @@
-import { Box, Typography, Paper, Link as MuiLink } from '@mui/material'
+import React from 'react'
+import {
+  Box,
+  Typography,
+  List,
+  ListItem,
+  ListItemButton,
+  useTheme,
+} from '@mui/material'
+import MoreHorizIcon from '@mui/icons-material/MoreHoriz'
+import SearchIcon from '@mui/icons-material/Search'
+import { alpha } from '@mui/material/styles'
 
-const TRENDING_TOPICS = [
-  { category: 'Música', topic: 'Assunto sobre Música', posts: '15.4K' },
-  {
-    category: 'Assunto do Momento em Brasil',
-    topic: 'Assunto do Momento',
-    posts: '20.7K',
-  },
-  { category: 'Tecnologia', topic: 'IA Generativa', posts: '8.1M' },
-  { category: 'Esportes', topic: 'Nova contratação do time X', posts: '50K' },
-  { category: 'Entretenimento', topic: 'Estreia da nova série', posts: '1.2M' },
-]
+export const Trends: React.FC = () => {
+  const theme = useTheme()
 
-export const Trends = () => (
-  <Paper
-    sx={{
-      mt: 2,
-      borderRadius: 4,
-      position: 'sticky',
-      top: 20,
-      bgcolor: '#f7f9f9',
-      overflow: 'hidden',
-    }}
-  >
+  const topics = [
+    {
+      category: 'Música',
+      topic: 'Assunto sobre Música',
+      tweets: '15.4K Tweets',
+    },
+    {
+      category: 'Assunto do Momento em Brasil',
+      topic: 'Assunto do Momento',
+      tweets: '20.7K Tweets',
+    },
+    { category: 'Tecnologia', topic: 'IA Generativa', tweets: '8.1M Tweets' },
+    {
+      category: 'Esportes',
+      topic: 'Nova contratação do time X',
+      tweets: '50K Tweets',
+    },
+    {
+      category: 'Entretenimento',
+      topic: 'Estreia da nova série',
+      tweets: '1.2M Tweets',
+    },
+  ]
+
+  return (
     <Box
       sx={{
-        p: 2,
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
+        pl: 3,
+        py: 1,
+        height: '100vh',
+        position: 'sticky',
+        top: 0,
+        display: { xs: 'none', md: 'block' },
       }}
     >
-      <Typography variant="h6" fontWeight="bold">
-        O que está acontecendo agora?
-      </Typography>
-    </Box>
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          bgcolor: theme.palette.mode === 'dark' ? '#202327' : '#eff3f4',
+          borderRadius: 99,
+          p: 1.5,
+          mb: 2,
+        }}
+      >
+        <SearchIcon sx={{ color: 'text.secondary', mr: 2 }} />
+        <Typography color="text.secondary">Buscar no Growtwitter</Typography>
+      </Box>
 
-    <Box>
-      {TRENDING_TOPICS.map((trend, index) => (
+      <Box
+        sx={{
+          bgcolor: theme.palette.mode === 'dark' ? '#16181c' : '#f7f9f9', // Fundo do Card
+          borderRadius: 4,
+          overflow: 'hidden',
+          pb: 1,
+        }}
+      >
+        <Typography variant="h6" fontWeight={800} sx={{ p: 2 }}>
+          O que está acontecendo
+        </Typography>
+
+        <List disablePadding>
+          {topics.map((item, index) => (
+            <ListItem key={index} disablePadding>
+              <ListItemButton
+                sx={{
+                  display: 'block',
+                  px: 2,
+                  '&:hover': {
+                    bgcolor:
+                      theme.palette.mode === 'dark'
+                        ? alpha(theme.palette.common.white, 0.03)
+                        : alpha(theme.palette.common.black, 0.03),
+                  },
+                }}
+              >
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="caption" color="text.secondary">
+                    {item.category}
+                  </Typography>
+                  <MoreHorizIcon
+                    fontSize="small"
+                    sx={{ color: 'text.secondary', fontSize: 16 }}
+                  />
+                </Box>
+
+                <Typography variant="body2" fontWeight={700} sx={{ my: 0.5 }}>
+                  {item.topic}
+                </Typography>
+
+                <Typography variant="caption" color="text.secondary">
+                  {item.tweets}
+                </Typography>
+              </ListItemButton>
+            </ListItem>
+          ))}
+        </List>
+
         <Box
-          key={index}
           sx={{
             p: 2,
             cursor: 'pointer',
-            transition: 'background-color 0.2s',
-            '&:hover': { bgcolor: '#eceff1' },
+            '&:hover': { bgcolor: 'action.hover' },
           }}
         >
-          <Typography variant="caption" color="text.secondary">
-            {trend.category}
-          </Typography>
-          <Typography variant="subtitle1" fontWeight="bold" lineHeight={1.2}>
-            {trend.topic}
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            {trend.posts} Tweets
+          <Typography color="primary" variant="body2">
+            Mostrar mais
           </Typography>
         </Box>
-      ))}
+      </Box>
     </Box>
-
-    <Box sx={{ p: 2 }}>
-      <MuiLink
-        component="button"
-        variant="body2"
-        sx={{ display: 'block', color: 'primary.main' }}
-      >
-        Mostrar mais
-      </MuiLink>
-    </Box>
-  </Paper>
-)
+  )
+}

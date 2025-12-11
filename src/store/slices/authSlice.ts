@@ -10,12 +10,12 @@ export interface AuthState {
 }
 
 const initialState: AuthState = {
-  token: localStorage.getItem('growtwitter_token') || null,
-  id: localStorage.getItem('growtwitter_id') || null,
-  username: localStorage.getItem('growtwitter_username') || null,
-  name: localStorage.getItem('growtwitter_name') || null,
-  imageUrl: localStorage.getItem('growtwitter_imageUrl') || null,
-  isLoggedIn: !!localStorage.getItem('growtwitter_token'),
+  token: null,
+  id: null,
+  username: null,
+  name: null,
+  imageUrl: null,
+  isLoggedIn: false,
 }
 
 interface LoginPayload {
@@ -36,34 +36,17 @@ const authSlice = createSlice({
       state.token = token
       state.id = id
       state.username = username
-      state.isLoggedIn = true
       state.name = name
       state.imageUrl = imageUrl || null
-
-      localStorage.setItem('growtwitter_token', token)
-      localStorage.setItem('growtwitter_id', id)
-      localStorage.setItem('growtwitter_username', username)
-      localStorage.setItem('growtwitter_name', name)
-
-      if (imageUrl) {
-        localStorage.setItem('growtwitter_imageUrl', imageUrl)
-      } else {
-        localStorage.removeItem('growtwitter_imageUrl')
-      }
+      state.isLoggedIn = true
     },
     logout: (state) => {
       state.token = null
       state.id = null
       state.username = null
-      state.isLoggedIn = false
       state.name = null
       state.imageUrl = null
-
-      localStorage.removeItem('growtwitter_token')
-      localStorage.removeItem('growtwitter_id')
-      localStorage.removeItem('growtwitter_username')
-      localStorage.removeItem('growtwitter_name')
-      localStorage.removeItem('growtwitter_imageUrl')
+      state.isLoggedIn = false
     },
     updateUserInfo: (
       state,

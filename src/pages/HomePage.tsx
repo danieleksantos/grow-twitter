@@ -4,12 +4,18 @@ import { useAuth } from '../store/hooks'
 import { TweetCard } from '../components/TweetCard'
 import type { Tweet } from '../types'
 
-import { Box, Typography, Divider, CircularProgress } from '@mui/material'
+import {
+  Box,
+  Typography,
+  Divider,
+  CircularProgress,
+  useTheme,
+} from '@mui/material'
 
 export const HomePage: React.FC = () => {
   const [tweets, setTweets] = useState<Tweet[]>([])
   const [loading, setLoading] = useState(true)
-
+  const theme = useTheme()
   const { isLoggedIn } = useAuth()
 
   const isInitialLoad = !tweets.length && loading
@@ -18,7 +24,7 @@ export const HomePage: React.FC = () => {
     setTweets((prevTweets) => prevTweets.filter((t) => t.id !== tweetId))
   }, [])
 
-  const fetchFeed = async () => {
+  const fetchFeed = useCallback(async () => {
     if (!isLoggedIn) {
       setLoading(false)
       return
@@ -34,10 +40,11 @@ export const HomePage: React.FC = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [isLoggedIn])
+
   useEffect(() => {
     fetchFeed()
-  }, [isLoggedIn])
+  }, [fetchFeed])
 
   if (!isLoggedIn) {
     return (
@@ -50,20 +57,19 @@ export const HomePage: React.FC = () => {
   }
 
   return (
-    <Box
-      sx={{
-        width: '100%',
-        position: 'relative',
-      }}
-    >
+    <Box sx={{ width: '100%', position: 'relative' }}>
       <Box
         sx={{
           p: 2,
-          borderBottom: '1px solid #eee',
+          borderBottom: `1px solid ${theme.palette.divider}`,
           position: 'sticky',
           top: 0,
           zIndex: 10,
-          bgcolor: 'background.default',
+          bgcolor:
+            theme.palette.mode === 'dark'
+              ? 'rgba(0,0,0,0.7)'
+              : 'rgba(255,255,255,0.85)',
+          backdropFilter: 'blur(12px)',
         }}
       >
         <Typography variant="h6" component="h1" fontWeight="bold">
@@ -78,17 +84,17 @@ export const HomePage: React.FC = () => {
       )}
 
       {!loading && tweets.length === 0 && (
-        <Typography color="text.secondary" sx={{ p: 2 }}>
-          Seu feed está vazio. Comece a seguir outros usuários!
+        <Typography color="text.secondary" sx={{ p: 3, textAlign: 'center' }}>
+          Seu feed está vazio. Siga pessoas para ver tweets!
         </Typography>
       )}
 
-      <Box className="tweet-list">
+      <Box>
         {tweets.map((tweet) => (
-          <Box key={tweet.id}>
+          <React.Fragment key={tweet.id}>
             <TweetCard tweet={tweet} onDeleteSuccess={handleTweetDelete} />
-            <Divider sx={{ my: 0 }} />
-          </Box>
+            <Divider />
+          </React.Fragment>
         ))}
       </Box>
     </Box>

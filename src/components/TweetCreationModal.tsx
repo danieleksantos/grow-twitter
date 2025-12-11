@@ -12,7 +12,8 @@ import {
   Divider,
 } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
-import SendIcon from '@mui/icons-material/Send'
+import { isAxiosError } from 'axios'
+
 import { useAppSelector } from '../store/hooks.ts'
 import api from '../services/api.ts'
 
@@ -39,12 +40,13 @@ export const TweetCreationModal: React.FC<TweetCreationModalProps> = ({
 
   const modalStyle = {
     position: 'absolute' as const,
-    top: '50%',
+    top: '10%',
     left: '50%',
-    transform: 'translate(-50%, -50%)',
-    width: 600,
+    transform: 'translate(-50%, 0)',
+    width: { xs: '95%', sm: 600 },
     bgcolor: 'background.paper',
-    borderRadius: 3,
+    color: 'text.primary',
+    borderRadius: 4,
     boxShadow: 24,
     p: 0,
     outline: 'none',
@@ -62,9 +64,16 @@ export const TweetCreationModal: React.FC<TweetCreationModalProps> = ({
       setContent('')
       onTweetPosted()
       onClose()
-    } catch (err: any) {
+    } catch (err) {
       console.error('Erro ao postar tweet:', err)
-      setError('Não foi possível postar o tweet. Verifique sua conexão.')
+
+      let errorMessage = 'Não foi possível postar. Tente novamente.'
+
+      if (isAxiosError(err) && err.response?.data?.message) {
+        errorMessage = err.response.data.message
+      }
+
+      setError(errorMessage)
     } finally {
       setIsLoading(false)
     }
@@ -76,7 +85,7 @@ export const TweetCreationModal: React.FC<TweetCreationModalProps> = ({
   return (
     <Modal
       open={open}
-      onClose={isLoading ? () => {} : onClose}
+      onClose={isLoading ? undefined : onClose}
       aria-labelledby="tweet-modal-title"
     >
       <Box sx={modalStyle}>
@@ -89,19 +98,20 @@ export const TweetCreationModal: React.FC<TweetCreationModalProps> = ({
           }}
         >
           <IconButton
-            onClick={isLoading ? () => {} : onClose}
-            sx={{ mr: 2 }}
+            onClick={isLoading ? undefined : onClose}
+            sx={{ mr: 2, color: 'primary.main' }}
             disabled={isLoading}
           >
             <CloseIcon />
           </IconButton>
-          <Typography id="tweet-modal-title" variant="h6">
-            Tweetar
-          </Typography>
         </Box>
 
         <Box sx={{ p: 2, display: 'flex', gap: 2 }}>
-          <Avatar src={avatarSrc} alt={loggedUsername || ''} />
+          <Avatar
+            src={avatarSrc}
+            alt={loggedUsername || ''}
+            sx={{ width: 48, height: 48 }}
+          />
 
           <Box sx={{ flexGrow: 1 }}>
             <TextField
@@ -116,14 +126,23 @@ export const TweetCreationModal: React.FC<TweetCreationModalProps> = ({
                   setContent(text)
                 }
               }}
-              rows={6}
+              minRows={4}
+              maxRows={10}
               disabled={isLoading}
-              sx={{ '& .MuiInputBase-root:before': { borderBottom: 'none' } }}
+              slotProps={{
+                input: {
+                  disableUnderline: true,
+                  style: {
+                    fontSize: '1.25rem',
+                    color: theme.palette.text.primary,
+                  },
+                },
+              }}
             />
           </Box>
         </Box>
 
-        <Divider sx={{ mx: 2 }} />
+        <Divider sx={{ mx: 2, borderColor: 'divider' }} />
 
         <Box
           sx={{
@@ -137,6 +156,7 @@ export const TweetCreationModal: React.FC<TweetCreationModalProps> = ({
             variant="caption"
             sx={{
               mr: 2,
+              fontWeight: 'bold',
               color: charsRemaining < 20 ? 'error.main' : 'text.secondary',
             }}
           >
@@ -144,7 +164,7 @@ export const TweetCreationModal: React.FC<TweetCreationModalProps> = ({
           </Typography>
 
           {error && (
-            <Typography color="error" variant="body2" sx={{ mr: 2 }}>
+            <Typography color="error" variant="caption" sx={{ mr: 2 }}>
               {error}
             </Typography>
           )}
@@ -154,8 +174,11 @@ export const TweetCreationModal: React.FC<TweetCreationModalProps> = ({
           <Button
             variant="contained"
             onClick={handlePost}
-            endIcon={<SendIcon />}
-            sx={{ borderRadius: 999 }}
+            sx={{
+              borderRadius: 999,
+              px: 3,
+              fontWeight: 'bold',
+            }}
             disabled={isLoading || !content.trim()}
           >
             Tweetar
